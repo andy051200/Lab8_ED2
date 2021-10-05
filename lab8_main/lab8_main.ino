@@ -61,7 +61,7 @@ void LCD_Print(String text, int x, int y, int fontSize, int color, int backgroun
 void LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
 void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int columns, int index, char flip, char offset);
 
-
+//valores para desplegar
 extern uint8_t fondo[];
 extern uint8_t uvg[];
 /*-----------------------------------------------------------------------------
@@ -73,40 +73,47 @@ extern uint8_t uvg[];
  ------------------------------ S E T   U P -----------------------------------
  -----------------------------------------------------------------------------*/
  void setup() {
+  //-------ENTRADAS Y SALIDA
+  pinMode(PA_3, OUTPUT);    //se define salida del CS para comunicacion con SD
+  //-------INICIALIZACION DE PROTOCOLOS DE COMUNICACION
+  SPI.setModule(0);         //SPI para SD
   
   SysCtlClockSet(SYSCTL_SYSDIV_2_5|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
-  Serial.begin(9600);
+  Serial.begin(9600);       //UART para menu
   GPIOPadConfigSet(GPIO_PORTB_BASE, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU);
   Serial.println("Start");
+  //-------INICIALIZACION DE TFT
   LCD_Init();
   LCD_Clear(0x00);
 
+  //-------IMPRESION DE DATOS INICIALES
   //FillRect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned int c)
   FillRect(80, 60, 160, 120, 0x0400);
-
   //LCD_Print(String text, int x, int y, int fontSize, int color, int background)
-  String text1 = "IE3027";
-  LCD_Print(text1, 110, 110, 2, 0xffff, 0x0000);
-  
-  delay(1000);
+  String text1 = "Lab 8 Andy B";                  //texto inicial a desplegar
+  LCD_Print(text1, 70, 110, 2, 0xffff, 0x0000);
+  delay(3000);
     
   //LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
   LCD_Bitmap(0, 0, 320, 240, uvg);
-  
+  //delay(5000);
+  //LCD_Bitmap(0, 0, 320, 240, fondo);
+  //delay(5000);
+  /*
   for(int x = 0; x <319; x++){
     LCD_Bitmap(x, 52, 16, 16, tile2);
     LCD_Bitmap(x, 68, 16, 16, tile);
     LCD_Bitmap(x, 207, 16, 16, tile);
     LCD_Bitmap(x, 223, 16, 16, tile);
     x += 15;
- }
+ }*/
  
 }
 /*-----------------------------------------------------------------------------
  -------------------------- M A I N   L O O P ---------------------------------
  -----------------------------------------------------------------------------*/
 void loop() {
-  for(int x = 0; x <320-32; x++){
+  /*for(int x = 0; x <320-32; x++){
     delay(10);
     
     int mario_index = (x/11)%8;
@@ -132,7 +139,7 @@ void loop() {
     
     LCD_Sprite(x, 175, 32, 32, bowser, 4, bowser_index, 0, 1);
     V_line(x + 32, 175, 32, 0x421b);
-  } 
+  } */
 }
 
 /*-----------------------------------------------------------------------------
