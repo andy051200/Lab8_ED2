@@ -29,8 +29,8 @@
 #include "bitmaps.h"
 #include "font.h"
 #include "lcd_registers.h"
-#include <SPI.h>      //incluir libreria de comunicacion spi
-#include <SD.h>       //incluir libreria de lectura/escritura sd
+#include <SPI.h>
+#include <SD.h>
 
 /*-----------------------------------------------------------------------------
  -----------------V A R I A B L E S   A   I M P L E M T E N T A R--------------
@@ -43,7 +43,11 @@
 #define LCD_RD PE_1
 //-------VARIABLES DE PROGRAMA
 int DPINS[] = {PB_0, PB_1, PB_2, PB_3, PB_4, PB_5, PB_6, PB_7};
-
+bool antirrebote1, antirrebote2;    //variables para antirrebote
+bool b1 =1;   //variable booleanaa para J1
+bool b2 =1;   //variable booleana para J2
+int wenas;
+File myFile;
 /*-----------------------------------------------------------------------------
  ------------ P R O T O T I P O S   D E   F U N C I O N E S -------------------
  -----------------------------------------------------------------------------*/
@@ -60,7 +64,7 @@ void LCD_Print(String text, int x, int y, int fontSize, int color, int backgroun
 
 void LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
 void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int columns, int index, char flip, char offset);
-
+void printDirectory(File dir, int numTabs); //informacion de directorio
 //valores para desplegar
 extern uint8_t fondo[];
 extern uint8_t uvg[];
@@ -74,6 +78,8 @@ extern uint8_t uvg[];
  -----------------------------------------------------------------------------*/
  void setup() {
   //-------ENTRADAS Y SALIDA
+  pinMode(31, INPUT_PULLUP);    //boton para imagen 1
+  pinMode(17, INPUT_PULLUP);    //boton para imagen 2
   pinMode(PA_3, OUTPUT);    //se define salida del CS para comunicacion con SD
   //-------INICIALIZACION DE PROTOCOLOS DE COMUNICACION
   SPI.setModule(0);         //SPI para SD
@@ -81,12 +87,11 @@ extern uint8_t uvg[];
   SysCtlClockSet(SYSCTL_SYSDIV_2_5|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
   Serial.begin(9600);       //UART para menu
   GPIOPadConfigSet(GPIO_PORTB_BASE, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU);
-  Serial.println("Start");
   //-------INICIALIZACION DE TFT
   LCD_Init();
   LCD_Clear(0x00);
 
-  //-------IMPRESION DE DATOS INICIALES
+  //-------IMPRESION DE DATOS INICIALES EN PANTALLA
   //FillRect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned int c)
   FillRect(80, 60, 160, 120, 0x0400);
   //LCD_Print(String text, int x, int y, int fontSize, int color, int background)
@@ -94,52 +99,46 @@ extern uint8_t uvg[];
   LCD_Print(text1, 70, 110, 2, 0xffff, 0x0000);
   delay(3000);
     
-  //LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
-  LCD_Bitmap(0, 0, 320, 240, uvg);
-  //delay(5000);
-  //LCD_Bitmap(0, 0, 320, 240, fondo);
-  //delay(5000);
-  /*
-  for(int x = 0; x <319; x++){
-    LCD_Bitmap(x, 52, 16, 16, tile2);
-    LCD_Bitmap(x, 68, 16, 16, tile);
-    LCD_Bitmap(x, 207, 16, 16, tile);
-    LCD_Bitmap(x, 223, 16, 16, tile);
-    x += 15;
- }*/
+  //-------MENSAJES DE INICIALIZACION DE COMUNICACION CON SD
+  Serial.println("Inicializando tarjeta SD...");
  
+  if (!SD.begin(PA_3)) {
+    Serial.println("initialización fallida!");  //mensaje si hay algun error
+    return;
+  }
+  Serial.println("initialización correcta.");   //mensaje si todo esta bien
+
+  myFile = SD.open("/");                        //se abre el directorio de la SD
+  printDirectory(myFile, 0);                    //se imprime el directorio de la SD
+
+  //-------MENSAJES DE MENU AL INICIAR PROGRAMA
+  Serial.println("done!");
+  Serial.println("Escoger imagen 1, 2 o 3 ");
+  Serial.println("1. antena.txt ");
+  Serial.println("2. ramon.txt ");
+  Serial.println("3. flophy.txt ");
 }
 /*-----------------------------------------------------------------------------
  -------------------------- M A I N   L O O P ---------------------------------
  -----------------------------------------------------------------------------*/
 void loop() {
-  /*for(int x = 0; x <320-32; x++){
-    delay(10);
-    
-    int mario_index = (x/11)%8;
-
-    //LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int columns, int index, char flip, char offset);
-    LCD_Sprite(x, 20, 16, 32, mario, 8, mario_index, 1, 0);
-    V_line( x -1, 20, 32, 0x0000);
-
-    int bowser_index = (x/11)%4;
-    
-    LCD_Sprite(x, 175, 32, 32, bowser, 4, bowser_index, 1, 0);
-    V_line( x -1, 175, 32, 0x421b);
+  //antirrebote1
+  b1 = digitalRead(31);         //se toma la lectura del boton 1
+  //-------antirrebote1
+  if (b1==0 && antirrebote1==0)    
+  {
+    antirrebote1=1;
   }
-  for(int x = 320-32; x >0; x--){
-    delay(10);
+  else{
+    antirrebote1=0;
+  } 
+  //-------accion luego del antirrebote1
+  if (antirrebote1==1 && b1==0){
+    LCD_Bitmap(0, 0, 320, 240, uvg);
+    wenas++;
+    Serial.println(wenas);
+  }
 
-    int mario_index = (x/11)%8;
-    
-    LCD_Sprite(x, 20, 16, 32, mario, 8, mario_index, 0, 0);
-    V_line(x + 16, 20, 32, 0x0000);
-
-    int bowser_index = (x/11)%4;
-    
-    LCD_Sprite(x, 175, 32, 32, bowser, 4, bowser_index, 0, 1);
-    V_line(x + 32, 175, 32, 0x421b);
-  } */
 }
 
 /*-----------------------------------------------------------------------------
@@ -467,4 +466,29 @@ void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int 
     }
   }
   digitalWrite(LCD_CS, HIGH);
+}
+
+//-------FUNCION PARA MOSTRAR INFORMACION DE DIRECTORIO
+void printDirectory(File dir, int numTabs) {
+  while (true) {
+
+    File entry =  dir.openNextFile();
+    if (! entry) {
+      // no more files
+      break;
+    }
+    for (uint8_t i = 0; i < numTabs; i++) {
+      Serial.print('\t');
+    }
+    Serial.print(entry.name());
+    if (entry.isDirectory()) {
+      Serial.println(" ");
+
+    } else {
+      // files have sizes, directories do not
+      Serial.print("\t\t");
+      Serial.println(entry.size());
+    }
+    entry.close();
+  }
 }
