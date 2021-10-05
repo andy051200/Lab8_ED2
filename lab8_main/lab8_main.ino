@@ -5,8 +5,13 @@
  * Con ayuda de: José Guerra
  * Modificaciones y adaptación: Diego Morales
  * IE3027: Electrónica Digital 2 - 2021
+ * adaptacion para uso de lab8 de Andy Bonilla
  */
 //***************************************************************************************************************************************
+
+/*-----------------------------------------------------------------------------
+ ----------------------------L I B R E R I A S---------------------------------
+ -----------------------------------------------------------------------------*/
 #include <stdint.h>
 #include <stdbool.h>
 #include <TM4C123GH6PM.h>
@@ -24,16 +29,24 @@
 #include "bitmaps.h"
 #include "font.h"
 #include "lcd_registers.h"
+#include <SPI.h>      //incluir libreria de comunicacion spi
+#include <SD.h>       //incluir libreria de lectura/escritura sd
 
+/*-----------------------------------------------------------------------------
+ -----------------V A R I A B L E S   A   I M P L E M T E N T A R--------------
+ -----------------------------------------------------------------------------*/
+//-------DIRECTIVA DE PROGRAMA
 #define LCD_RST PD_0
 #define LCD_CS PD_1
 #define LCD_RS PD_2
 #define LCD_WR PD_3
 #define LCD_RD PE_1
-int DPINS[] = {PB_0, PB_1, PB_2, PB_3, PB_4, PB_5, PB_6, PB_7};  
-//***************************************************************************************************************************************
-// Functions Prototypes
-//***************************************************************************************************************************************
+//-------VARIABLES DE PROGRAMA
+int DPINS[] = {PB_0, PB_1, PB_2, PB_3, PB_4, PB_5, PB_6, PB_7};
+
+/*-----------------------------------------------------------------------------
+ ------------ P R O T O T I P O S   D E   F U N C I O N E S -------------------
+ -----------------------------------------------------------------------------*/
 void LCD_Init(void);
 void LCD_CMD(uint8_t cmd);
 void LCD_DATA(uint8_t data);
@@ -51,10 +64,16 @@ void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int 
 
 extern uint8_t fondo[];
 extern uint8_t uvg[];
-//***************************************************************************************************************************************
-// Initialization
-//***************************************************************************************************************************************
-void setup() {
+/*-----------------------------------------------------------------------------
+ --------------------- I N T E R R U P C I O N E S ----------------------------
+ -----------------------------------------------------------------------------*/
+//de momento no hay interrupciones
+
+/*-----------------------------------------------------------------------------
+ ------------------------------ S E T   U P -----------------------------------
+ -----------------------------------------------------------------------------*/
+ void setup() {
+  
   SysCtlClockSet(SYSCTL_SYSDIV_2_5|SYSCTL_USE_PLL|SYSCTL_OSC_MAIN|SYSCTL_XTAL_16MHZ);
   Serial.begin(9600);
   GPIOPadConfigSet(GPIO_PORTB_BASE, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU);
@@ -83,9 +102,9 @@ void setup() {
  }
  
 }
-//***************************************************************************************************************************************
-// Loop
-//***************************************************************************************************************************************
+/*-----------------------------------------------------------------------------
+ -------------------------- M A I N   L O O P ---------------------------------
+ -----------------------------------------------------------------------------*/
 void loop() {
   for(int x = 0; x <320-32; x++){
     delay(10);
@@ -115,9 +134,11 @@ void loop() {
     V_line(x + 32, 175, 32, 0x421b);
   } 
 }
-//***************************************************************************************************************************************
-// Función para inicializar LCD
-//***************************************************************************************************************************************
+
+/*-----------------------------------------------------------------------------
+ ------------------------- F U N C I O N E S ----------------------------------
+ -----------------------------------------------------------------------------*/
+//-------Función para inicializar LCD
 void LCD_Init(void) {
   pinMode(LCD_RST, OUTPUT);
   pinMode(LCD_CS, OUTPUT);
@@ -127,9 +148,7 @@ void LCD_Init(void) {
   for (uint8_t i = 0; i < 8; i++){
     pinMode(DPINS[i], OUTPUT);
   }
-  //****************************************
-  // Secuencia de Inicialización
-  //****************************************
+  //-------Secuencia de Inicialización
   digitalWrite(LCD_CS, HIGH);
   digitalWrite(LCD_RS, HIGH);
   digitalWrite(LCD_WR, HIGH);
@@ -224,27 +243,24 @@ void LCD_Init(void) {
   LCD_CMD(ILI9341_DISPON);    //Display on
   digitalWrite(LCD_CS, HIGH);
 }
-//***************************************************************************************************************************************
-// Función para enviar comandos a la LCD - parámetro (comando)
-//***************************************************************************************************************************************
+
+//-------Función para enviar comandos a la LCD - parámetro (comando)
 void LCD_CMD(uint8_t cmd) {
   digitalWrite(LCD_RS, LOW);
   digitalWrite(LCD_WR, LOW);
   GPIO_PORTB_DATA_R = cmd;
   digitalWrite(LCD_WR, HIGH);
 }
-//***************************************************************************************************************************************
-// Función para enviar datos a la LCD - parámetro (dato)
-//***************************************************************************************************************************************
+
+//-------Función para enviar datos a la LCD - parámetro (dato)
 void LCD_DATA(uint8_t data) {
   digitalWrite(LCD_RS, HIGH);
   digitalWrite(LCD_WR, LOW);
   GPIO_PORTB_DATA_R = data;
   digitalWrite(LCD_WR, HIGH);
 }
-//***************************************************************************************************************************************
-// Función para definir rango de direcciones de memoria con las cuales se trabajara (se define una ventana)
-//***************************************************************************************************************************************
+
+//-------Función para definir rango de direcciones de memoria con las cuales se trabajara (se define una ventana)
 void SetWindows(unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2) {
   LCD_CMD(0x2a); // Set_column_address 4 parameters
   LCD_DATA(x1 >> 8);
@@ -258,9 +274,8 @@ void SetWindows(unsigned int x1, unsigned int y1, unsigned int x2, unsigned int 
   LCD_DATA(y2);   
   LCD_CMD(0x2c); // Write_memory_start
 }
-//***************************************************************************************************************************************
-// Función para borrar la pantalla - parámetros (color)
-//***************************************************************************************************************************************
+
+//-------Función para borrar la pantalla - parámetros (color)
 void LCD_Clear(unsigned int c){  
   unsigned int x, y;
   LCD_CMD(0x02c); // write_memory_start
@@ -274,9 +289,8 @@ void LCD_Clear(unsigned int c){
     }
   digitalWrite(LCD_CS, HIGH);
 } 
-//***************************************************************************************************************************************
-// Función para dibujar una línea horizontal - parámetros ( coordenada x, cordenada y, longitud, color)
-//*************************************************************************************************************************************** 
+
+//-------Función para dibujar una línea horizontal - parámetros ( coordenada x, cordenada y, longitud, color)
 void H_line(unsigned int x, unsigned int y, unsigned int l, unsigned int c) {  
   unsigned int i, j;
   LCD_CMD(0x02c); //write_memory_start
@@ -291,9 +305,8 @@ void H_line(unsigned int x, unsigned int y, unsigned int l, unsigned int c) {
   }
   digitalWrite(LCD_CS, HIGH);
 }
-//***************************************************************************************************************************************
-// Función para dibujar una línea vertical - parámetros ( coordenada x, cordenada y, longitud, color)
-//*************************************************************************************************************************************** 
+
+//-------Función para dibujar una línea vertical - parámetros ( coordenada x, cordenada y, longitud, color)
 void V_line(unsigned int x, unsigned int y, unsigned int l, unsigned int c) {  
   unsigned int i,j;
   LCD_CMD(0x02c); //write_memory_start
@@ -308,18 +321,16 @@ void V_line(unsigned int x, unsigned int y, unsigned int l, unsigned int c) {
   }
   digitalWrite(LCD_CS, HIGH);  
 }
-//***************************************************************************************************************************************
-// Función para dibujar un rectángulo - parámetros ( coordenada x, cordenada y, ancho, alto, color)
-//***************************************************************************************************************************************
+
+//-------Función para dibujar un rectángulo - parámetros ( coordenada x, cordenada y, ancho, alto, color)
 void Rect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned int c) {
   H_line(x  , y  , w, c);
   H_line(x  , y+h, w, c);
   V_line(x  , y  , h, c);
   V_line(x+w, y  , h, c);
 }
-//***************************************************************************************************************************************
-// Función para dibujar un rectángulo relleno - parámetros ( coordenada x, cordenada y, ancho, alto, color)
-//***************************************************************************************************************************************
+
+//-------Función para dibujar un rectángulo relleno - parámetros ( coordenada x, cordenada y, ancho, alto, color)
 void FillRect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned int c) {
   LCD_CMD(0x02c); // write_memory_start
   digitalWrite(LCD_RS, HIGH);
@@ -340,9 +351,8 @@ void FillRect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, un
   }
   digitalWrite(LCD_CS, HIGH);
 }
-//***************************************************************************************************************************************
-// Función para dibujar texto - parámetros ( texto, coordenada x, cordenada y, color, background) 
-//***************************************************************************************************************************************
+
+//-------Función para dibujar texto - parámetros ( texto, coordenada x, cordenada y, color, background) 
 void LCD_Print(String text, int x, int y, int fontSize, int color, int background) {
   int fontXSize ;
   int fontYSize ;
@@ -391,9 +401,8 @@ void LCD_Print(String text, int x, int y, int fontSize, int color, int backgroun
     digitalWrite(LCD_CS, HIGH);
   }
 }
-//***************************************************************************************************************************************
-// Función para dibujar una imagen a partir de un arreglo de colores (Bitmap) Formato (Color 16bit R 5bits G 6bits B 5bits)
-//***************************************************************************************************************************************
+
+//-------Función para dibujar una imagen a partir de un arreglo de colores (Bitmap) Formato (Color 16bit R 5bits G 6bits B 5bits)
 void LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]){  
   LCD_CMD(0x02c); // write_memory_start
   digitalWrite(LCD_RS, HIGH);
@@ -416,9 +425,8 @@ void LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int
   }
   digitalWrite(LCD_CS, HIGH);
 }
-//***************************************************************************************************************************************
-// Función para dibujar una imagen sprite - los parámetros columns = número de imagenes en el sprite, index = cual desplegar, flip = darle vuelta
-//***************************************************************************************************************************************
+
+//-------Función para dibujar una imagen sprite - los parámetros columns = número de imagenes en el sprite, index = cual desplegar, flip = darle vuelta
 void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int columns, int index, char flip, char offset){
   LCD_CMD(0x02c); // write_memory_start
   digitalWrite(LCD_RS, HIGH);
