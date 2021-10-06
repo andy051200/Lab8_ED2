@@ -152,7 +152,7 @@ void loop() {
     mapeo_SD("MyA.txt");                       //imagen alma
     String text1 = "Mar y yo <3";         //pequeña descripcion
     //delay(500);
-    LCD_Print(text1, 30, 10, 2, 0x0000, 0xffff);  //caracteristicas de texto
+    LCD_Print(text1, 70, 140, 2, 0x0000, 0xffff);  //caracteristicas de texto
   }
   
   
