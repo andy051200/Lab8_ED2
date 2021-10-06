@@ -26,6 +26,7 @@
 #include "driverlib/sysctl.h"
 #include "driverlib/timer.h"
 
+
 #include "bitmaps.h"
 #include "font.h"
 #include "lcd_registers.h"
@@ -65,6 +66,9 @@ void LCD_Print(String text, int x, int y, int fontSize, int color, int backgroun
 void LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
 void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int columns, int index, char flip, char offset);
 void printDirectory(File dir, int numTabs); //informacion de directorio
+int ascii2hex(int a);
+void mapeo_SD(char doc[]);
+
 //valores para desplegar
 extern uint8_t fondo[];
 extern uint8_t uvg[];
@@ -112,11 +116,7 @@ extern uint8_t uvg[];
   printDirectory(myFile, 0);                    //se imprime el directorio de la SD
 
   //-------MENSAJES DE MENU AL INICIAR PROGRAMA
-  Serial.println("done!");
-  Serial.println("Escoger imagen 1, 2 o 3 ");
-  Serial.println("1. antena.txt ");
-  Serial.println("2. ramon.txt ");
-  Serial.println("3. flophy.txt ");
+  
 }
 /*-----------------------------------------------------------------------------
  -------------------------- M A I N   L O O P ---------------------------------
@@ -125,8 +125,7 @@ void loop() {
   //antirrebote1
   b1 = digitalRead(31);         //se toma la lectura del boton 1
   //-------antirrebote1
-  if (b1==0 && antirrebote1==0)    
-  {
+  if (b1==0 && antirrebote1==0){
     antirrebote1=1;
   }
   else{
@@ -134,12 +133,12 @@ void loop() {
   } 
   //-------accion luego del antirrebote1
   if (antirrebote1==1 && b1==0){
-    LCD_Bitmap(0, 0, 320, 240, uvg);
-    wenas++;
-    Serial.println(wenas);
+    antirrebote1=0;
+    mapeo_SD("alma.txt");
   }
-
 }
+
+
 
 /*-----------------------------------------------------------------------------
  ------------------------- F U N C I O N E S ----------------------------------
@@ -490,5 +489,77 @@ void printDirectory(File dir, int numTabs) {
       Serial.println(entry.size());
     }
     entry.close();
+  }
+}
+//-------FUNCION PARA MAPEAR LOS VALORES HEX DEL BITMAP A DECIMALES
+int ascii2hex(int a) {
+  switch (a) {
+    case (48):      //caso 0
+      return 0;
+    case (49):      //caso 1
+      return 1;
+    case (50):      //caso 2
+      return 2;
+    case (51):      //caso 3
+      return 3;
+    case (52):      //caso 4
+      return 4;
+    case (53):      //caso 5
+      return 5;
+    case (54):      //caso 6
+      return 6;
+    case (55):      //caso 7
+      return 7;
+    case (56):      //caso 8
+      return 8;
+    case (57):      //caso 9
+      return 9;
+    case (97):      //caso A
+      return 10;
+    case (98):      //caso B
+      return 11;
+    case (99):      //caso C
+      return 12;
+    case (100):     //caso D
+      return 13;
+    case (101):     //caso E
+      return 14;
+    case (102):     //caso F
+      return 15;
+  }
+}
+//-------FUNCION PARA MOSTRAR LAS IMAGENES DESDE SD
+void mapeo_SD(char doc[]) {
+  myFile = SD.open(doc, FILE_READ);
+  int hex1 = 0;
+  int val1 = 0;
+  int val2 = 0;
+  int mapear = 0;
+  int vertical = 0;
+  unsigned char maps[640];
+
+  if (myFile) {
+    Serial.println("Abriendo el archivo");
+    while (myFile.available() ) {
+      mapear = 0;
+      while (mapear < 640) {
+        hex1 = myFile.read();
+        if (hex1 == 120) {
+          val1 = myFile.read();
+          val2 = myFile.read();
+          val1 = ascii2hex(val1);
+          val2 = ascii2hex(val2);
+          maps[mapear] = val1 * 16 + val2;
+          mapear++;
+        }
+      }
+      LCD_Bitmap(0, vertical, 320, 1, maps);
+      vertical++;
+    }
+    myFile.close();
+    Serial.println("cierro");
+  } else {
+    Serial.println("error opening el doc");
+    myFile.close();
   }
 }
