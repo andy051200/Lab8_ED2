@@ -69,9 +69,6 @@ void printDirectory(File dir, int numTabs); //informacion de directorio
 int ascii2hex(int a);
 void mapeo_SD(char doc[]);
 
-//valores para desplegar
-extern uint8_t fondo[];
-extern uint8_t uvg[];
 /*-----------------------------------------------------------------------------
  --------------------- I N T E R R U P C I O N E S ----------------------------
  -----------------------------------------------------------------------------*/
@@ -95,13 +92,6 @@ extern uint8_t uvg[];
   LCD_Init();
   LCD_Clear(0x00);
 
-  //-------IMPRESION DE DATOS INICIALES EN PANTALLA
-  //FillRect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned int c)
-  FillRect(80, 60, 160, 120, 0x0400);
-  //LCD_Print(String text, int x, int y, int fontSize, int color, int background)
-  String text1 = "Lab 8 Andy B";                  //texto inicial a desplegar
-  LCD_Print(text1, 70, 110, 2, 0xffff, 0x0000);
-  delay(3000);
     
   //-------MENSAJES DE INICIALIZACION DE COMUNICACION CON SD
   Serial.println("Inicializando tarjeta SD...");
@@ -116,7 +106,12 @@ extern uint8_t uvg[];
   printDirectory(myFile, 0);                    //se imprime el directorio de la SD
 
   //-------MENSAJES DE MENU AL INICIAR PROGRAMA
-  
+  //FillRect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned int c)
+  mapeo_SD("yo.txt"); 
+  //LCD_Print(String text, int x, int y, int fontSize, int color, int background)
+  String text1 = "Lab 8 Andy Bonilla";                  //texto inicial a desplegar
+  LCD_Print(text1, 10, 110, 2, 0x0000, 0xffff);
+  delay(1000);
 }
 /*-----------------------------------------------------------------------------
  -------------------------- M A I N   L O O P ---------------------------------
@@ -134,8 +129,34 @@ void loop() {
   //-------accion luego del antirrebote1
   if (antirrebote1==1 && b1==0){
     antirrebote1=0;
-    mapeo_SD("alma.txt");
+    LCD_Clear(0x00);
+    mapeo_SD("alma.txt");                       //imagen alma
+    String text1 = "Observatorio ALMA";         //pequeña descripcion    
+    LCD_Print(text1, 30, 10, 2, 0x0000, 0xffff);  //caracteristicas de texto
+
   }
+  //-------control de cual imagen se pone
+  //antirrebote1
+  b2 = digitalRead(17);         //se toma la lectura del boton 2
+  //-------antirrebote2
+  if (b2==0 && antirrebote2==0){
+    antirrebote2=1;
+  }
+  else{
+    antirrebote2=0;
+  } 
+  //-------accion luego del antirrebote1
+  if (antirrebote2==1 && b2==0){
+
+    LCD_Clear(0x00);
+    mapeo_SD("MyA.txt");                       //imagen alma
+    String text1 = "Mar y yo <3";         //pequeña descripcion
+    //delay(500);
+    LCD_Print(text1, 30, 10, 2, 0x0000, 0xffff);  //caracteristicas de texto
+  }
+  
+  
+  
 }
 
 
@@ -530,36 +551,35 @@ int ascii2hex(int a) {
 }
 //-------FUNCION PARA MOSTRAR LAS IMAGENES DESDE SD
 void mapeo_SD(char doc[]) {
-  myFile = SD.open(doc, FILE_READ);
-  int hex1 = 0;
-  int val1 = 0;
+  myFile = SD.open(doc, FILE_READ);   //se toma el archivo de la imagen 
+  int hex1 = 0;                       //declaracion de variable 1 para valor hex
+  int val1 = 0;                       
   int val2 = 0;
   int mapear = 0;
   int vertical = 0;
-  unsigned char maps[640];
+  unsigned char maps[640];            //se crea arreglo vacio para almacenar el mapeo
 
   if (myFile) {
-    Serial.println("Abriendo el archivo");
-    while (myFile.available() ) {
+    while (myFile.available() ) {     //se leen datos mientras este disponible
       mapear = 0;
-      while (mapear < 640) {
-        hex1 = myFile.read();
+      while (mapear < 640) {          //se limita el rango
+        hex1 = myFile.read();         //se lee el archivo con la imagen
         if (hex1 == 120) {
-          val1 = myFile.read();
-          val2 = myFile.read();
-          val1 = ascii2hex(val1);
-          val2 = ascii2hex(val2);
-          maps[mapear] = val1 * 16 + val2;
-          mapear++;
+          val1 = myFile.read();       //se lee el primer valor hexadecimal del bitmap
+          val2 = myFile.read();       //se lee el segundo valor hexadecimal del bitmap
+          val1 = ascii2hex(val1);     //se mapea el primer valor hexadecimal 
+          val2 = ascii2hex(val2);     //se mapea el segundo valor hexadecimal 
+          maps[mapear] = val1 * 16 + val2;  //se colona en el arreglo nuevo
+          mapear++;                         //se cambia de posicion
         }
       }
       LCD_Bitmap(0, vertical, 320, 1, maps);
       vertical++;
     }
     myFile.close();
-    Serial.println("cierro");
-  } else {
-    Serial.println("error opening el doc");
+  }
+  else {
+    Serial.println("No se pudo abrir la imagen, prueba nuevamente");
     myFile.close();
   }
 }
